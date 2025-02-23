@@ -36,7 +36,7 @@ extension ReviewCellConfig: TableCellConfig {
         cell.config = self
     }
 
-    /// Метод, возвращаюший высоту ячейки с данным ограниченим по размеру.
+    /// Метод, возвращаюший высоту ячейки с данным ограничением по размеру.
     /// Вызывается из `heightForRowAt:` делегата таблицы.
     func height(with size: CGSize) -> CGFloat {
         layout.height(config: self, maxWidth: size.width)
@@ -153,7 +153,7 @@ private final class ReviewCellLayout {
     /// Вертикальный отступ от кнопки "Показать полностью..." до времени создания отзыва.
     private let showMoreToCreatedSpacing = 6.0
 
-    // MARK: - TableCellConfig
+    // MARK: - Расчёт фреймов и высоты ячейки
 
     /// Возвращает высоту ячейку с данной конфигурацией `config` и ограничением по ширине `maxWidth`.
     func height(config: Config, maxWidth: CGFloat) -> CGFloat {
@@ -163,14 +163,16 @@ private final class ReviewCellLayout {
         var showShowMoreButton = false
 
         if !config.reviewText.isEmpty() {
-            let maxHeight = (config.reviewText.font()?.lineHeight ?? .zero) * CGFloat(config.maxLines)
-            if config.maxLines != .zero {
-                showShowMoreButton = config.reviewText.boundingRect(width: width).size.height > maxHeight
-            }
+            // Высота текста с текущим ограничением по количеству строк.
+            let currentTextHeight = (config.reviewText.font()?.lineHeight ?? .zero) * CGFloat(config.maxLines)
+            // Максимально возможная высота текста, если бы ограничения не было.
+            let actualTextHeight = config.reviewText.boundingRect(width: width).size.height
+            // Показываем кнопку "Показать полностью...", если максимально возможная высота текста больше текущей.
+            showShowMoreButton = config.maxLines != .zero && actualTextHeight > currentTextHeight
 
             reviewTextLabelFrame = CGRect(
                 origin: CGPoint(x: insets.left, y: maxY),
-                size: config.reviewText.boundingRect(width: width, height: maxHeight).size
+                size: config.reviewText.boundingRect(width: width, height: currentTextHeight).size
             )
             maxY = reviewTextLabelFrame.maxY + reviewTextToCreatedSpacing
         }
