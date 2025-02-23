@@ -81,12 +81,12 @@ private extension ReviewsViewModel {
     func makeReviewItem(_ review: Review) -> ReviewItem {
         let reviewText = review.text.attributed(font: .text)
         let created = review.created.attributed(font: .created, color: .created)
-        let config = ReviewItem(
+        let item = ReviewItem(
             reviewText: reviewText,
             created: created,
             onTapShowMore: showMoreReview
         )
-        return config
+        return item
     }
 
 }
@@ -132,7 +132,7 @@ extension ReviewsViewModel: UITableViewDelegate {
         targetOffsetY: CGFloat,
         screensToLoadNextPage: Double = 2.5
     ) -> Bool {
-        let viewHeight = scrollView.bounds.size.height
+        let viewHeight = scrollView.bounds.height
         let contentHeight = scrollView.contentSize.height
         let triggerDistance = viewHeight * screensToLoadNextPage
         let remainingDistance = contentHeight - viewHeight - targetOffsetY
