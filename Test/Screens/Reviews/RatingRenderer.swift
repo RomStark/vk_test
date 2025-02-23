@@ -32,7 +32,7 @@ extension RatingRendererConfig {
 
 // MARK: - Renderer
 
-/// Класс рисует изображения рейтинга (звёзды) и кэширует его.
+/// Класс рисует изображение рейтинга (звёзды) и кэширует его.
 final class RatingRenderer {
 
     private let config: RatingRendererConfig
