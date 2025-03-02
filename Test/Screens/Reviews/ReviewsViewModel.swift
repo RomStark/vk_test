@@ -5,6 +5,7 @@ final class ReviewsViewModel: NSObject {
 
     /// Замыкание, вызываемое при изменении `state`.
     var onStateChange: ((State) -> Void)?
+    private var lastRequestTime: Date = .distantPast
 
     private var state: State
     private let reviewsProvider: ReviewsProvider
@@ -46,16 +47,41 @@ private extension ReviewsViewModel {
 
     /// Метод обработки получения отзывов.
     func gotReviews(_ result: ReviewsProvider.GetReviewsResult) {
-        do {
-            let data = try result.get()
-            let reviews = try decoder.decode(Reviews.self, from: data)
-            state.items += reviews.items.map(makeReviewItem)
-            state.offset += state.limit
-            state.shouldLoad = state.offset < reviews.count
-        } catch {
-            state.shouldLoad = true
+        state.items = state.items.filter( { $0.reuseId != CountCellConfig.reuseId } )
+        DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let data = try result.get()
+                    let reviews = try self.decoder.decode(Reviews.self, from: data)
+
+                    var newItems = self.state.items
+                    newItems += reviews.items.map(self.makeReviewItem)
+                    let shouldLoad = self.state.offset + self.state.limit < reviews.count
+                    let newCount = shouldLoad ? self.state.offset + self.state.limit : reviews.count
+
+                    DispatchQueue.main.async {
+                        self.state.items = newItems
+                        self.state.offset += self.state.limit
+                        self.state.shouldLoad = shouldLoad
+                        self.updateCountCell(count: newCount)
+                        self.onStateChange?(self.state)
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.state.shouldLoad = true
+                    }
+                }
+            }
+    }
+    
+    func updateCountCell(count: Int) {
+        let countText = "\(count) \(count%10 <= 4 ? "отзыва" : "отзывов")".attributed(font: .reviewCount, color: .reviewCount)
+        
+        let countCell = CountCellConfig(countText: countText)
+        if let lastItem = state.items.last, lastItem is CountCellConfig {
+            state.items[state.items.count - 1] = countCell // Обновляем существующую countCell
+        } else {
+            state.items.append(countCell) // Добавляем, если её ещё нет
         }
-        onStateChange?(state)
     }
 
     /// Метод, вызываемый при нажатии на кнопку "Показать полностью...".
@@ -81,10 +107,15 @@ private extension ReviewsViewModel {
     func makeReviewItem(_ review: Review) -> ReviewItem {
         let reviewText = review.text.attributed(font: .text)
         let created = review.created.attributed(font: .created, color: .created)
+        let userName = "\(review.first_name) \(review.last_name)".attributed(font: .username)
         let item = ReviewItem(
             reviewText: reviewText,
             created: created,
-            onTapShowMore: showMoreReview
+            userName: userName,
+            onTapShowMore: showMoreReview,
+            getImage: { [weak self] in
+                self?.ratingRenderer.ratingImage(review.rating)
+            }
         )
         return item
     }
@@ -94,7 +125,6 @@ private extension ReviewsViewModel {
 // MARK: - UITableViewDataSource
 
 extension ReviewsViewModel: UITableViewDataSource {
-
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         state.items.count
     }
@@ -132,6 +162,10 @@ extension ReviewsViewModel: UITableViewDelegate {
         targetOffsetY: CGFloat,
         screensToLoadNextPage: Double = 2.5
     ) -> Bool {
+        let now = Date()
+        guard now.timeIntervalSince(lastRequestTime) > 0.3 else { return false } // 300 мс задержка
+        lastRequestTime = now
+        
         let viewHeight = scrollView.bounds.height
         let contentHeight = scrollView.contentSize.height
         let triggerDistance = viewHeight * screensToLoadNextPage
