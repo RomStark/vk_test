@@ -1,4 +1,6 @@
 /// Модель отзыва.
+
+import Foundation
 struct Review: Decodable {
 
     /// Текст отзыва.
@@ -8,5 +10,6 @@ struct Review: Decodable {
     let first_name: String
     let last_name: String
     let rating: Int
+    let avatarURL: URL?
 
 }

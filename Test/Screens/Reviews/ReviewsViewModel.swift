@@ -115,7 +115,8 @@ private extension ReviewsViewModel {
             onTapShowMore: showMoreReview,
             getImage: { [weak self] in
                 self?.ratingRenderer.ratingImage(review.rating)
-            }
+            },
+            avatarURL: review.avatarURL
         )
         return item
     }

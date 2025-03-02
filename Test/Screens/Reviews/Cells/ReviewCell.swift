@@ -18,6 +18,7 @@ struct ReviewCellConfig {
     let userName: NSAttributedString
     let onTapShowMore: (UUID) -> Void
     let getImage: () -> UIImage?
+    let avatarURL: URL?
 
     /// Объект, хранящий посчитанные фреймы для ячейки отзыва.
     fileprivate let layout = ReviewCellLayout()
@@ -37,6 +38,7 @@ extension ReviewCellConfig: TableCellConfig {
         cell.reviewTextLabel.attributedText = reviewText
         cell.reviewTextLabel.numberOfLines = maxLines
         cell.createdLabel.attributedText = created
+        cell.avatarImageView.loadImage(from: avatarURL)
         cell.config = self
     }
 
